@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Branches</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Inventory</h2>
+          <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+        </div>
+
+        <nav id="navMenu"></nav>
+
+        <div class="sidebar-footer">
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="topbar">
+          <h1>Branches</h1>
+        </div>
+        <div class="sidebar-footer"></div>
+
+        <div class="panel">
+          <h2>Add Branch</h2>
+          <form id="branchForm" class="form-grid">
+            <input id="branchName" placeholder="Branch Name" required />
+            <input id="address" placeholder="Address" required />
+            <input id="contactPerson" placeholder="Contact Person" />
+            <input id="contactNumber" placeholder="Contact Number" />
+            <button type="submit">Save Branch</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>Branch List</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Contact</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="branchTable"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <script src="main.js"></script>
+    <script>
+      protectPage();
+
+      async function loadBranches() {
+        const data = await apiRequest("/branches");
+        branchTable.innerHTML = data
+          .map(
+            (b) => `
+    <tr>
+      <td>${b.branchName}</td>
+      <td>${b.address}</td>
+      <td>${b.contactPerson || ""} ${b.contactNumber || ""}</td>
+      <td>${b.status}</td>
+      <td><button onclick="deleteBranch('${b._id}')">Delete</button></td>
+    </tr>
+  `,
+          )
+          .join("");
+      }
+
+      branchForm.onsubmit = async (e) => {
+        e.preventDefault();
+
+        await apiRequest("/branches", "POST", {
+          branchName: branchName.value,
+          address: address.value,
+          contactPerson: contactPerson.value,
+          contactNumber: contactNumber.value,
+        });
+
+        branchForm.reset();
+        loadBranches();
+      };
+
+      async function deleteBranch(id) {
+        if (!confirm("Delete this branch?")) return;
+        await apiRequest(`/branches/${id}`, "DELETE");
+        loadBranches();
+      }
+
+      loadBranches();
+    </script>
+  </body>
+</html>

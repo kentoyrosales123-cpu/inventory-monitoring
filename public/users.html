@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Users</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Inventory</h2>
+          <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+        </div>
+
+        <nav id="navMenu"></nav>
+
+        <div class="sidebar-footer">
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="topbar">
+          <h1>Users</h1>
+          <button onclick="logout()">Logout</button>
+        </div>
+
+        <div class="panel">
+          <h2>Create User</h2>
+          <form id="userForm" class="form-grid">
+            <input id="name" placeholder="Full Name" required />
+            <input id="email" type="email" placeholder="Email" required />
+            <input
+              id="password"
+              type="password"
+              placeholder="Password"
+              required
+            />
+            <select id="role">
+              <option value="staff">Branch Staff</option>
+              <option value="admin">Admin</option>
+            </select>
+            <select id="assignedBranch"></select>
+            <button type="submit">Create User</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>User List</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Branch</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="userTable"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <script src="main.js"></script>
+    <script>
+      protectPage();
+
+      async function loadBranches() {
+        const branches = await apiRequest("/branches");
+        assignedBranch.innerHTML =
+          `<option value="">No Branch</option>` +
+          branches
+            .map(
+              (b) => `
+    <option value="${b._id}">${b.branchName}</option>
+  `,
+            )
+            .join("");
+      }
+
+      async function loadUsers() {
+        const users = await apiRequest("/users");
+
+        userTable.innerHTML = users
+          .map(
+            (u) => `
+    <tr>
+      <td>${u.name}</td>
+      <td>${u.email}</td>
+      <td>${u.role}</td>
+      <td>${u.assignedBranch?.branchName || "-"}</td>
+      <td>${u.status}</td>
+    </tr>
+  `,
+          )
+          .join("");
+      }
+
+      userForm.onsubmit = async (e) => {
+        e.preventDefault();
+
+        await apiRequest("/users", "POST", {
+          name: name.value,
+          email: email.value,
+          password: password.value,
+          role: role.value,
+          assignedBranch: assignedBranch.value || null,
+        });
+
+        userForm.reset();
+        loadUsers();
+      };
+
+      loadBranches();
+      loadUsers();
+    </script>
+  </body>
+</html>

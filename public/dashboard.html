@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Inventory</h2>
+          <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+        </div>
+
+        <nav id="navMenu"></nav>
+
+        <div class="sidebar-footer">
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="dashboard-header-clean">
+          <div>
+            <h1>Dashboard</h1>
+            <p id="userInfo">Good Evening, Admin</p>
+            <small id="currentDateTime"></small>
+          </div>
+
+          <div class="dashboard-actions-clean">
+            <div class="search-box">
+              <span>🔍</span>
+              <input type="text" placeholder="Search inventory..." />
+            </div>
+
+            <button
+              class="action-btn"
+              onclick="location.href = 'products.html'"
+            >
+              + Add Product
+            </button>
+
+            <button
+              class="action-btn secondary"
+              onclick="location.href = 'branches.html'"
+            >
+              + Add Branch
+            </button>
+
+            <div class="notification-wrapper">
+              <button
+                class="icon-btn notification-btn"
+                title="Refill Notifications"
+                onclick="showNotifications()"
+              >
+                🔔
+                <span class="notif-dot hidden" id="notifCount">0</span>
+              </button>
+
+              <div
+                id="notificationDropdown"
+                class="notification-dropdown hidden"
+              >
+                <h4>Notifications</h4>
+                <div id="notificationList">
+                  <p class="empty-notif">No new notifications</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <section class="cards">
+          <div class="kpi-card blue">
+            <div>
+              <span>Total Branches</span>
+              <h2 id="totalBranches">0</h2>
+            </div>
+            <div class="icon-box">🏢</div>
+          </div>
+
+          <div class="kpi-card green">
+            <div>
+              <span>Total Products</span>
+              <h2 id="totalProducts">0</h2>
+            </div>
+            <div class="icon-box">📦</div>
+          </div>
+
+          <div class="kpi-card orange">
+            <div>
+              <span>Low Stock Items</span>
+              <h2 id="lowStockItems">0</h2>
+              <small>Needs Refill</small>
+            </div>
+            <div class="icon-box">⚠️</div>
+          </div>
+
+          <div class="kpi-card red">
+            <div>
+              <span>Pending Requests</span>
+              <h2 id="pendingRequests">0</h2>
+              <small>Waiting Approval</small>
+            </div>
+            <div class="icon-box">📝</div>
+          </div>
+        </section>
+
+        <section class="grid-2">
+          <div class="panel">
+            <h2>Stock Status Summary</h2>
+            <canvas id="stockChart"></canvas>
+          </div>
+
+          <div class="panel">
+            <h2>Recently Updated Inventory</h2>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Branch</th>
+                  <th>Product</th>
+                  <th>Stock</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="recentInventory"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="main.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
+</html>

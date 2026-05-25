@@ -1,0 +1,159 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Inventory</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Inventory</h2>
+          <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+        </div>
+
+        <nav id="navMenu"></nav>
+
+        <div class="sidebar-footer">
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="topbar">
+          <h1>Inventory</h1>
+          <!-- Logout moved to sidebar -->
+          <div class="sidebar-footer"></div>
+        </div>
+
+        <div class="panel admin-only">
+          <h2>Add Inventory Item</h2>
+          <form id="inventoryForm" class="form-grid">
+            <select id="branchSelect" required></select>
+            <select id="productSelect" required></select>
+            <input
+              id="currentStock"
+              type="number"
+              placeholder="Current Stock"
+              required
+            />
+            <input
+              id="minimumStockLevel"
+              type="number"
+              placeholder="Minimum Stock Level"
+              required
+            />
+            <button type="submit">Add Inventory</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>Inventory Records</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Branch</th>
+                <th>Product</th>
+                <th>Stock</th>
+                <th>Minimum</th>
+                <th>Status</th>
+                <th>Update</th>
+                <th>Request</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTable"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <script src="main.js"></script>
+    <script>
+      protectPage();
+
+      async function loadOptions() {
+        const user = getUser();
+
+        if (user.role === "admin") {
+          const branches = await apiRequest("/branches");
+          branchSelect.innerHTML = branches
+            .map((b) => `<option value="${b._id}">${b.branchName}</option>`)
+            .join("");
+        }
+
+        const products = await apiRequest("/products");
+        productSelect.innerHTML = products
+          .map((p) => `<option value="${p._id}">${p.productName}</option>`)
+          .join("");
+      }
+
+      async function loadInventory() {
+        const data = await apiRequest("/inventory");
+
+        inventoryTable.innerHTML = data
+          .map(
+            (i) => `
+    <tr>
+      <td>${i.branch?.branchName || ""}</td>
+      <td>${i.product?.productName || ""}</td>
+      <td>${i.currentStock}</td>
+      <td>${i.minimumStockLevel}</td>
+      <td>${badge(i.stockStatus)}</td>
+      <td>
+        <input type="number" id="stock-${i._id}" placeholder="New stock" style="width:90px">
+        <button onclick="updateStock('${i._id}')">Update</button>
+      </td>
+      <td>
+        <button onclick="requestRefill('${i._id}')">Request Refill</button>
+      </td>
+    </tr>
+  `,
+          )
+          .join("");
+      }
+
+      inventoryForm?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        await apiRequest("/inventory", "POST", {
+          branch: branchSelect.value,
+          product: productSelect.value,
+          currentStock: currentStock.value,
+          minimumStockLevel: minimumStockLevel.value,
+        });
+
+        inventoryForm.reset();
+        loadInventory();
+      });
+
+      async function updateStock(id) {
+        const stockInput = document.getElementById(`stock-${id}`);
+
+        await apiRequest(`/inventory/${id}/stock`, "PUT", {
+          currentStock: stockInput.value,
+          remarks: "Manual inventory count",
+        });
+
+        loadInventory();
+      }
+
+      async function requestRefill(id) {
+        const qty = prompt("Requested quantity:");
+        if (!qty) return;
+
+        const urgency = prompt("Urgency level: Low, Medium, High", "Medium");
+
+        await apiRequest("/refill-requests", "POST", {
+          inventoryId: id,
+          requestedQuantity: Number(qty),
+          urgencyLevel: urgency || "Medium",
+          remarks: "Requested from inventory page",
+        });
+
+        alert("Refill request submitted.");
+      }
+
+      loadOptions();
+      loadInventory();
+    </script>
+  </body>
+</html>

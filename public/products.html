@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Products</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Inventory</h2>
+          <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+        </div>
+
+        <nav id="navMenu"></nav>
+
+        <div class="sidebar-footer">
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="topbar">
+          <h1>Products</h1>
+        </div>
+
+        <div class="panel">
+          <h2>Add Product</h2>
+          <form id="productForm" class="form-grid">
+            <input id="productName" placeholder="Product Name" required />
+            <input id="sku" placeholder="SKU / Code" required />
+            <input id="category" placeholder="Category" required />
+            <input id="unitType" placeholder="Unit Type" required />
+            <input
+              id="supplierCost"
+              type="number"
+              placeholder="Supplier Cost"
+            />
+            <input
+              id="sellingPrice"
+              type="number"
+              placeholder="Selling Price"
+            />
+            <input
+              id="minimumStockLevel"
+              type="number"
+              placeholder="Minimum Stock Level"
+            />
+            <button type="submit">Save Product</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>Product List</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>SKU</th>
+                <th>Category</th>
+                <th>Min Stock</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="productTable"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <script src="main.js"></script>
+    <script>
+      protectPage();
+
+      async function loadProducts() {
+        const data = await apiRequest("/products");
+        productTable.innerHTML = data
+          .map(
+            (p) => `
+    <tr>
+      <td>${p.productName}</td>
+      <td>${p.sku}</td>
+      <td>${p.category}</td>
+      <td>${p.minimumStockLevel}</td>
+      <td>${p.status}</td>
+      <td><button onclick="deleteProduct('${p._id}')">Delete</button></td>
+    </tr>
+  `,
+          )
+          .join("");
+      }
+
+      productForm.onsubmit = async (e) => {
+        e.preventDefault();
+
+        await apiRequest("/products", "POST", {
+          productName: productName.value,
+          sku: sku.value,
+          category: category.value,
+          unitType: unitType.value,
+          supplierCost: supplierCost.value,
+          sellingPrice: sellingPrice.value,
+          minimumStockLevel: minimumStockLevel.value,
+        });
+
+        productForm.reset();
+        loadProducts();
+      };
+
+      async function deleteProduct(id) {
+        if (!confirm("Delete this product?")) return;
+        await apiRequest(`/products/${id}`, "DELETE");
+        loadProducts();
+      }
+
+      loadProducts();
+    </script>
+  </body>
+</html>

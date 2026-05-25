@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Reports</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Inventory</h2>
+          <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+        </div>
+
+        <nav id="navMenu"></nav>
+
+        <div class="sidebar-footer">
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="topbar">
+          <h1>Reports</h1>
+        </div>
+
+        <div class="panel">
+          <h2>Inventory Report</h2>
+
+          <div class="filters">
+            <select id="stockStatus">
+              <option value="">All Status</option>
+              <option>In Stock</option>
+              <option>Low Stock</option>
+              <option>Out of Stock</option>
+            </select>
+            <button onclick="loadReport()">Filter</button>
+            <button onclick="downloadExcel()">Download Excel</button>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Branch</th>
+                <th>Product</th>
+                <th>SKU</th>
+                <th>Stock</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="reportTable"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <script src="main.js"></script>
+    <script>
+      protectPage();
+
+      async function loadReport() {
+        const status = stockStatus.value;
+        const query = status
+          ? `?stockStatus=${encodeURIComponent(status)}`
+          : "";
+        const data = await apiRequest(`/reports/inventory${query}`);
+
+        reportTable.innerHTML = data
+          .map(
+            (i) => `
+    <tr>
+      <td>${i.branch?.branchName || ""}</td>
+      <td>${i.product?.productName || ""}</td>
+      <td>${i.product?.sku || ""}</td>
+      <td>${i.currentStock}</td>
+      <td>${badge(i.stockStatus)}</td>
+    </tr>
+  `,
+          )
+          .join("");
+      }
+
+      function downloadExcel() {
+        const token = localStorage.getItem("token");
+        const status = stockStatus.value;
+        const query = status
+          ? `?stockStatus=${encodeURIComponent(status)}`
+          : "";
+        window.open(
+          `/api/reports/inventory/excel${query}&token=${token}`,
+          "_blank",
+        );
+      }
+
+      loadReport();
+    </script>
+  </body>
+</html>
