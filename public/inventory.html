@@ -98,10 +98,23 @@
       <td>${i.currentStock}</td>
       <td>${i.minimumStockLevel}</td>
       <td>${badge(i.stockStatus)}</td>
-      <td>
-        <input type="number" id="stock-${i._id}" placeholder="New stock" style="width:90px">
-        <button onclick="updateStock('${i._id}')">Update</button>
-      </td>
+      <td class="update-column">
+  <div class="stock-update">
+    <input 
+      type="number" 
+      id="stock-${i._id}" 
+      class="stock-input"
+      placeholder="New stock"
+      min="0"
+    />
+    <button 
+      class="update-btn" 
+      onclick="updateStock('${i._id}')"
+    >
+      Update
+    </button>
+  </div>
+</td>
       <td>
         <button onclick="requestRefill('${i._id}')">Request Refill</button>
       </td>
@@ -128,12 +141,26 @@
       async function updateStock(id) {
         const stockInput = document.getElementById(`stock-${id}`);
 
-        await apiRequest(`/inventory/${id}/stock`, "PUT", {
-          currentStock: stockInput.value,
-          remarks: "Manual inventory count",
-        });
+        if (!stockInput.value) {
+          stockInput.focus();
+          return;
+        }
 
-        loadInventory();
+        try {
+          const result = await apiRequest(`/inventory/${id}/stock`, "PUT", {
+            currentStock: Number(stockInput.value),
+            remarks: "Manual inventory count",
+          });
+
+          const row = stockInput.closest("tr");
+
+          row.children[2].textContent = result.inventory.currentStock;
+          row.children[4].innerHTML = badge(result.inventory.stockStatus);
+
+          stockInput.value = "";
+        } catch (error) {
+          console.error("Update stock error:", error);
+        }
       }
 
       async function requestRefill(id) {

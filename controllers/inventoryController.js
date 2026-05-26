@@ -4,7 +4,16 @@ const Product = require("../models/Product");
 
 exports.createInventory = async (req, res) => {
   try {
+    console.log("CREATE INVENTORY BODY:", req.body);
+    console.log("CREATE INVENTORY USER:", req.user);
+
     const { branch, product, currentStock, minimumStockLevel } = req.body;
+
+    if (!branch || !product) {
+      return res.status(400).json({
+        message: "Branch and product are required",
+      });
+    }
 
     const existing = await Inventory.findOne({ branch, product });
 
@@ -16,18 +25,25 @@ exports.createInventory = async (req, res) => {
 
     const productData = await Product.findById(product);
 
-    const inventory = await Inventory.create({
+    const inventory = new Inventory({
       branch,
       product,
-      currentStock,
-      minimumStockLevel:
-        minimumStockLevel ?? productData?.minimumStockLevel ?? 0,
-      lastUpdatedBy: req.user._id,
+      currentStock: Number(currentStock || 0),
+      minimumStockLevel: Number(
+        minimumStockLevel || productData?.minimumStockLevel || 0,
+      ),
+      lastUpdatedBy: req.user?._id || null,
     });
+
+    await inventory.save();
 
     res.status(201).json(inventory);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("CREATE INVENTORY ERROR:", error);
+
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 
@@ -61,36 +77,56 @@ exports.updateStock = async (req, res) => {
     const inventory = await Inventory.findById(req.params.id);
 
     if (!inventory) {
-      return res.status(404).json({ message: "Inventory not found" });
+      return res.status(404).json({
+        message: "Inventory not found",
+      });
     }
 
     if (
       req.user.role === "staff" &&
       inventory.branch.toString() !== req.user.assignedBranch?.toString()
     ) {
-      return res.status(403).json({ message: "Access denied" });
+      return res.status(403).json({
+        message: "Access denied",
+      });
     }
 
     const previousStock = inventory.currentStock;
 
     inventory.currentStock = Number(currentStock);
-    inventory.lastUpdatedBy = req.user._id;
+    inventory.lastUpdatedBy = req.user?._id || null;
 
     await inventory.save();
 
-    await InventoryHistory.create({
-      branch: inventory.branch,
-      product: inventory.product,
-      inventory: inventory._id,
-      previousStock,
-      newStock: inventory.currentStock,
-      remarks,
-      updatedBy: req.user._id,
-    });
+    try {
+      await InventoryHistory.create({
+        branch: inventory.branch,
+        product: inventory.product,
+        inventory: inventory._id,
+        previousStock,
+        newStock: inventory.currentStock,
+        remarks: remarks || "Manual inventory count",
+        updatedBy: req.user?._id,
+      });
+    } catch (historyError) {
+      console.error("Inventory history save error:", historyError.message);
+    }
 
-    res.json({ message: "Stock updated", inventory });
+    const updatedInventory = await Inventory.findById(inventory._id)
+      .populate("branch", "branchName")
+      .populate("product")
+      .populate("lastUpdatedBy", "name");
+
+    res.json({
+      message: "Stock updated",
+      inventory: updatedInventory,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Update stock error:", error);
+
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 

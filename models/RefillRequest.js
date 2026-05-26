@@ -28,7 +28,13 @@ const refillRequestSchema = new mongoose.Schema(
     remarks: { type: String },
     status: {
       type: String,
-      enum: ["Pending", "Approved", "Delivered", "Cancelled"],
+      enum: [
+        "Pending",
+        "Approved",
+        "Out for Delivery",
+        "Delivered",
+        "Cancelled",
+      ],
       default: "Pending",
     },
     requestedBy: {
@@ -44,6 +50,27 @@ const refillRequestSchema = new mongoose.Schema(
     deliveredBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      default: null,
+    },
+    outForDeliveryBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    outForDeliveryDate: {
+      type: Date,
+      default: null,
+    },
+
+    acknowledgedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    acknowledgedDate: {
+      type: Date,
       default: null,
     },
     requestDate: {

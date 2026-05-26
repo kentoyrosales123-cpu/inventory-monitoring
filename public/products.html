@@ -69,48 +69,87 @@
     </div>
 
     <script src="main.js"></script>
+
     <script>
       protectPage();
 
       async function loadProducts() {
-        const data = await apiRequest("/products");
-        productTable.innerHTML = data
-          .map(
-            (p) => `
-    <tr>
-      <td>${p.productName}</td>
-      <td>${p.sku}</td>
-      <td>${p.category}</td>
-      <td>${p.minimumStockLevel}</td>
-      <td>${p.status}</td>
-      <td><button onclick="deleteProduct('${p._id}')">Delete</button></td>
-    </tr>
-  `,
-          )
-          .join("");
+        try {
+          const products = await apiRequest("/products");
+
+          document.getElementById("productTable").innerHTML = products
+            .map(
+              (p) => `
+          <tr>
+            <td>${p.productName}</td>
+            <td>${p.sku}</td>
+            <td>${p.category}</td>
+            <td>${p.minimumStockLevel}</td>
+            <td>${p.status}</td>
+            <td>
+              <button onclick="deleteProduct('${p._id}')">
+                Delete
+              </button>
+            </td>
+          </tr>
+        `,
+            )
+            .join("");
+        } catch (error) {
+          console.error(error);
+        }
       }
 
-      productForm.onsubmit = async (e) => {
-        e.preventDefault();
+      document
+        .getElementById("productForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
 
-        await apiRequest("/products", "POST", {
-          productName: productName.value,
-          sku: sku.value,
-          category: category.value,
-          unitType: unitType.value,
-          supplierCost: supplierCost.value,
-          sellingPrice: sellingPrice.value,
-          minimumStockLevel: minimumStockLevel.value,
+          try {
+            const payload = {
+              productName: document.getElementById("productName").value.trim(),
+
+              sku: document.getElementById("sku").value.trim(),
+
+              category: document.getElementById("category").value.trim(),
+
+              unitType: document.getElementById("unitType").value.trim(),
+
+              supplierCost: Number(
+                document.getElementById("supplierCost").value || 0,
+              ),
+
+              sellingPrice: Number(
+                document.getElementById("sellingPrice").value || 0,
+              ),
+
+              minimumStockLevel: Number(
+                document.getElementById("minimumStockLevel").value || 0,
+              ),
+            };
+
+            await apiRequest("/products", "POST", payload);
+
+            alert("Product added successfully");
+
+            document.getElementById("productForm").reset();
+
+            loadProducts();
+          } catch (error) {
+            console.error(error);
+          }
         });
-
-        productForm.reset();
-        loadProducts();
-      };
 
       async function deleteProduct(id) {
         if (!confirm("Delete this product?")) return;
-        await apiRequest(`/products/${id}`, "DELETE");
-        loadProducts();
+
+        try {
+          await apiRequest(`/products/${id}`, "DELETE");
+
+          loadProducts();
+        } catch (error) {
+          console.error(error);
+        }
       }
 
       loadProducts();

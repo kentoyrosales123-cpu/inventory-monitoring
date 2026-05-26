@@ -29,7 +29,7 @@ const inventorySchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-inventorySchema.pre("save", function (next) {
+inventorySchema.pre("save", function () {
   if (this.currentStock <= 0) {
     this.stockStatus = "Out of Stock";
   } else if (this.currentStock <= this.minimumStockLevel) {
@@ -37,8 +37,6 @@ inventorySchema.pre("save", function (next) {
   } else {
     this.stockStatus = "In Stock";
   }
-
-  next();
 });
 
 module.exports = mongoose.model("Inventory", inventorySchema);

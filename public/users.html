@@ -68,13 +68,14 @@
 
       async function loadBranches() {
         const branches = await apiRequest("/branches");
-        assignedBranch.innerHTML =
+
+        document.getElementById("assignedBranch").innerHTML =
           `<option value="">No Branch</option>` +
           branches
             .map(
               (b) => `
-    <option value="${b._id}">${b.branchName}</option>
-  `,
+            <option value="${b._id}">${b.branchName}</option>
+          `,
             )
             .join("");
       }
@@ -82,35 +83,45 @@
       async function loadUsers() {
         const users = await apiRequest("/users");
 
-        userTable.innerHTML = users
+        document.getElementById("userTable").innerHTML = users
           .map(
             (u) => `
-    <tr>
-      <td>${u.name}</td>
-      <td>${u.email}</td>
-      <td>${u.role}</td>
-      <td>${u.assignedBranch?.branchName || "-"}</td>
-      <td>${u.status}</td>
-    </tr>
-  `,
+          <tr>
+            <td>${u.name}</td>
+            <td>${u.email}</td>
+            <td>${u.role}</td>
+            <td>${u.assignedBranch?.branchName || "-"}</td>
+            <td>${u.status}</td>
+          </tr>
+        `,
           )
           .join("");
       }
 
-      userForm.onsubmit = async (e) => {
-        e.preventDefault();
+      document
+        .getElementById("userForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
 
-        await apiRequest("/users", "POST", {
-          name: name.value,
-          email: email.value,
-          password: password.value,
-          role: role.value,
-          assignedBranch: assignedBranch.value || null,
+          const payload = {
+            name: document.getElementById("name").value.trim(),
+            email: document.getElementById("email").value.trim(),
+            password: document.getElementById("password").value,
+            role: document.getElementById("role").value,
+            assignedBranch:
+              document.getElementById("assignedBranch").value || null,
+          };
+
+          if (!payload.name) {
+            alert("Full name is required.");
+            return;
+          }
+
+          await apiRequest("/users", "POST", payload);
+
+          document.getElementById("userForm").reset();
+          await loadUsers();
         });
-
-        userForm.reset();
-        loadUsers();
-      };
 
       loadBranches();
       loadUsers();

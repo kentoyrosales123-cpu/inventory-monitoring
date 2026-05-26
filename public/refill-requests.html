@@ -4,6 +4,7 @@
     <title>Refill Requests</title>
     <link rel="stylesheet" href="style.css" />
   </head>
+
   <body>
     <div class="layout">
       <aside class="sidebar">
@@ -18,6 +19,7 @@
           <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
       </aside>
+
       <main class="main">
         <div class="topbar">
           <h1>Refill Requests</h1>
@@ -25,6 +27,7 @@
 
         <div class="panel">
           <h2>Requests</h2>
+
           <table>
             <thead>
               <tr>
@@ -37,6 +40,7 @@
                 <th>Action</th>
               </tr>
             </thead>
+
             <tbody id="requestTable"></tbody>
           </table>
         </div>
@@ -44,6 +48,7 @@
     </div>
 
     <script src="main.js"></script>
+
     <script>
       protectPage();
 
@@ -54,45 +59,134 @@
         requestTable.innerHTML = data
           .map(
             (r) => `
-    <tr>
-      <td>${r.branch?.branchName || ""}</td>
-      <td>${r.product?.productName || ""}</td>
-      <td>${r.currentStock}</td>
-      <td>${r.requestedQuantity}</td>
-      <td>${r.urgencyLevel}</td>
-      <td>${r.status}</td>
-      <td>
-        ${
-          user.role === "admin"
-            ? `
-          <button onclick="updateStatus('${r._id}', 'Approved')">Approve</button>
-          <button onclick="deliver('${r._id}', ${r.requestedQuantity})">Delivered</button>
-          <button onclick="updateStatus('${r._id}', 'Cancelled')">Cancel</button>
-        `
-            : "-"
-        }
-      </td>
-    </tr>
-  `,
+              <tr>
+                <td>${r.branch?.branchName || ""}</td>
+                <td>${r.product?.productName || ""}</td>
+                <td>${r.currentStock}</td>
+                <td>${r.requestedQuantity}</td>
+                <td>${r.urgencyLevel}</td>
+                <td>${statusBadge(r.status)}</td>
+                <td>${renderActions(r, user)}</td>
+              </tr>
+            `,
           )
           .join("");
       }
 
-      async function updateStatus(id, status) {
-        await apiRequest(`/refill-requests/${id}/status`, "PUT", { status });
-        loadRequests();
+      function renderActions(request, user) {
+        if (user.role === "admin") {
+          if (request.status === "Pending") {
+            return `
+              <button onclick="updateStatus('${request._id}', 'Approved')">
+                Approve
+              </button>
+
+              <button onclick="updateStatus('${request._id}', 'Cancelled')">
+                Cancel
+              </button>
+            `;
+          }
+
+          if (request.status === "Approved") {
+            return `
+              <button onclick="updateStatus('${request._id}', 'Out for Delivery')">
+                Out for Delivery
+              </button>
+
+              <button onclick="updateStatus('${request._id}', 'Cancelled')">
+                Cancel
+              </button>
+            `;
+          }
+
+          if (request.status === "Out for Delivery") {
+            return `
+              <span class="status-note">
+                Waiting branch acknowledgment
+              </span>
+            `;
+          }
+
+          if (request.status === "Delivered") {
+            return `
+              <span class="status-note success">
+                Delivered
+              </span>
+            `;
+          }
+
+          return "-";
+        }
+
+        if (user.role === "staff") {
+          if (request.status === "Out for Delivery") {
+            return `
+              <button onclick="acknowledgeDelivery('${request._id}')">
+                Acknowledge Received
+              </button>
+            `;
+          }
+
+          if (request.status === "Approved") {
+            return `
+              <span class="status-note">
+                Approved - waiting for delivery
+              </span>
+            `;
+          }
+
+          if (request.status === "Pending") {
+            return `
+              <span class="status-note">
+                Waiting admin approval
+              </span>
+            `;
+          }
+
+          if (request.status === "Delivered") {
+            return `
+              <span class="status-note success">
+                Received
+              </span>
+            `;
+          }
+
+          return "-";
+        }
+
+        return "-";
       }
 
-      async function deliver(id, qty) {
-        const deliveredQuantity = prompt("Delivered quantity:", qty);
-        if (!deliveredQuantity) return;
+      async function updateStatus(id, status) {
+        if (!confirm(`Update request to "${status}"?`)) return;
 
         await apiRequest(`/refill-requests/${id}/status`, "PUT", {
-          status: "Delivered",
-          deliveredQuantity: Number(deliveredQuantity),
+          status,
         });
 
         loadRequests();
+      }
+
+      async function acknowledgeDelivery(id) {
+        if (!confirm("Confirm that this delivery is already on hand?")) return;
+
+        await apiRequest(`/refill-requests/${id}/acknowledge`, "PUT");
+
+        alert("Delivery acknowledged. Inventory updated.");
+
+        loadRequests();
+      }
+
+      function statusBadge(status) {
+        let cls = "status-badge";
+
+        if (status === "Pending") cls += " pending";
+        if (status === "Approved") cls += " approved";
+        if (status === "Out for Delivery") cls += " delivery";
+        if (status === "Delivered") cls += " delivered";
+        if (status === "Cancelled") cls += " cancelled";
+
+        return `<span class="${cls}">${status}</span>`;
       }
 
       loadRequests();
